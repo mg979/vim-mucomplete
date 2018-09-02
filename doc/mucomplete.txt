@@ -416,8 +416,10 @@ checked.
 A List specifying a completion chain for the current buffer only. When this
 variable is defined, the value of |g:mucomplete#chains| is ignored.
 
-			    *'g:mucomplete#chains'* *'g:mucomplete#alt_chains'*
-A Dictionary defining the Lists of completion chains.
+						       *'g:mucomplete#chains'*
+						   *'g:mucomplete#alt_chains'*
+						*'g:mucomplete#scoped_chains'*
+Dictionaries defining the Lists of completion chains.
 >
 	let g:mucomplete#chains = {
 		\ 'default' : ['path', 'omni', 'keyn', 'dict', 'uspl'],
@@ -440,6 +442,20 @@ valid for the alternative set. Default:
 	let g:mucomplete#alt_chains = {
 		\ 'default' : ['tags', 'ulti', 'c-n'],
 		\ 'vim'     : ['tags', 'ulti', 'c-n']
+		\ }
+<
+An additional dictionary defines chains that will be active in a certain
+scope, and in a certain filetype. There is no fallback, and if a scope is
+defined as ['none'], autocompletion will be disabled inside of it. Default:
+>
+	let g:mucomplete#scoped_chains = {}
+<
+Example:
+>
+	let g:mucomplete#scoped_chains = {
+		\ 'vim'     : {'vimString':      ['none'],
+		\	       'vimLineComment': ['keyn'],
+		\	       'vimComment':     ['spel']}
 		\ }
 <
 						*'g:mucomplete#cycle_all'*

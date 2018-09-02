@@ -112,6 +112,8 @@ let g:mucomplete#alt_chains = extend({
       \ 'vim'     : ['tags', 'ulti', 'c-n']
       \ }, get(g:, 'mucomplete#alt_chains', {}))
 
+let g:mucomplete#scoped_chains = get(g:, 'mucomplete#scoped_chains', {})
+
 " Default completion chain
 let g:mucomplete#current_chain = g:mucomplete#chains
 
@@ -293,8 +295,13 @@ endf
 fun! mucomplete#init(dir, tab_completion) " Initialize/reset internal state
   let g:mucomplete_with_key = a:tab_completion
   let s:dir = a:dir
+  let scope = s:scope()
+  if scope == ['none']
+    return
+  endif
+  let chain = !empty(scope) ? scope : g:mucomplete#current_chain
   let s:compl_methods = get(b:, 'mucomplete_chain',
-        \ get(g:mucomplete#current_chain, getbufvar("%", "&ft"), g:mucomplete#current_chain['default']))
+        \ get(chain, getbufvar("%", "&ft"), chain['default']))
   let s:N = len(s:compl_methods)
   let s:countdown = s:N
   let s:i = s:dir > 0 ? -1 : s:N
@@ -332,6 +339,16 @@ fun! mucomplete#auto_complete()
       return feedkeys("\<plug>(MUcompleteTry)", 'i')
     endif
   endwhile
+endf
+
+fun! s:scope()
+  let ft = get(g:mucomplete#scoped_chains, getbufvar("%", "&ft"), {})
+  if empty(ft)
+    return []
+  else
+    let scope = synIDattr(synID(line('.'), col('.')-1, 1), 'name')
+  endif
+  return has_key(ft, scope) ? ft[scope] : []
 endf
 
 let &cpo = s:save_cpo
