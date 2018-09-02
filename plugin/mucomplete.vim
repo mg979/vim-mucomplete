@@ -14,6 +14,7 @@ imap     <silent> <expr> <plug>(MUcompleteFwd) mucomplete#tab_complete( 1)
 imap     <silent> <expr> <plug>(MUcompleteBwd) mucomplete#tab_complete(-1)
 imap     <silent> <expr> <plug>(MUcompleteCycFwd) mucomplete#cycle( 1)
 imap     <silent> <expr> <plug>(MUcompleteCycBwd) mucomplete#cycle(-1)
+imap     <silent> <expr> <plug>(MUcompleteAlternate) mucomplete#change_chain()
 
 if !has('patch-8.0.0283')
   inoremap <silent> <expr> <plug>(MUcompletePopupCancel) mucomplete#auto#popup_exit("\<c-e>")
@@ -27,6 +28,13 @@ if !get(g:, 'mucomplete#no_mappings', get(g:, 'no_plugin_maps', 0))
   endif
   if !hasmapto('<plug>(MUcompleteBwd)', 'i')
     imap <unique> <s-tab> <plug>(MUcompleteBwd)
+  endif
+  if !hasmapto('<plug>(MUcompleteAlternate)', 'i')
+    if has('nvim') || has('gui_running')
+      imap <unique> <c-space> <plug>(MUcompleteAlternate)
+    else
+      imap <unique> <nul> <plug>(MUcompleteAlternate)
+    endif
   endif
 endif
 
