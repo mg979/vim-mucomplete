@@ -195,12 +195,14 @@ endf
 
 fun! s:act_on_pumvisible()
   call s:set_cot()
+  silent doautocmd User MUcompletePmenu
   return !g:mucomplete_with_key || get(g:, 'mucomplete#always_use_completeopt', 0) || (index(['spel','uspl'], get(s:compl_methods, s:i, '')) > - 1)
         \ ? s:fix_auto_select()
         \ : s:insert_entry()
 endf
 
 fun! s:try_completion() " Assumes s:i in [0, s:N - 1]
+  let g:mucomplete#completion_type = s:compl_methods[s:i]
   return s:compl_mappings[s:compl_methods[s:i]] . "\<c-r>\<c-r>=''\<cr>\<plug>(MUcompleteVerify)"
 endf
 
