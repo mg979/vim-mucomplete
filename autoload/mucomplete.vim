@@ -107,6 +107,14 @@ let g:mucomplete#chains = extend({
       \ 'vim'     : ['path', 'cmd',  'keyn']
       \ }, get(g:, 'mucomplete#chains', {}))
 
+let g:mucomplete#alt_chains = extend({
+      \ 'default' : ['tags', 'ulti', 'c-n'],
+      \ 'vim'     : ['tags', 'ulti', 'c-n']
+      \ }, get(g:, 'mucomplete#alt_chains', {}))
+
+" Default completion chain
+let g:mucomplete#current_chain = g:mucomplete#chains
+
 " Conditions to be verified for a given method to be applied.
 if has('lambda')
   if get(g:, 'mucomplete#force_manual', 0)
@@ -215,6 +223,7 @@ fun! s:next_method()
       return s:try_completion()
     endif
   endwhile
+  let g:mucomplete#current_chain = g:mucomplete#chains
   return ''
 endf
 
@@ -246,6 +255,16 @@ fun! s:extend_completion(dir, keys)
         \ : a:keys
 endf
 
+fun! mucomplete#change_chain()
+  if !pumvisible()
+    return ''
+  endif
+  let g:mucomplete#current_chain = g:mucomplete#current_chain is g:mucomplete#chains
+        \ ? g:mucomplete#alt_chains : g:mucomplete#chains
+  return "\<plug>(MUcompletePopupCancel)\<plug>(MUcompleteFwd)\<plug>(MUcompleteBwd)"
+endfun
+
+call mucomplete#auto#auto_complete()
 fun! mucomplete#extend_fwd(keys)
   return s:extend_completion(1, a:keys)
 endf
@@ -280,7 +299,7 @@ fun! mucomplete#init(dir, tab_completion) " Initialize/reset internal state
   let g:mucomplete_with_key = a:tab_completion
   let s:dir = a:dir
   let s:compl_methods = get(b:, 'mucomplete_chain',
-        \ get(g:mucomplete#chains, getbufvar("%", "&ft"), g:mucomplete#chains['default']))
+        \ get(g:mucomplete#current_chain, getbufvar("%", "&ft"), g:mucomplete#current_chain['default']))
   let s:N = len(s:compl_methods)
   let s:countdown = s:N
   let s:i = s:dir > 0 ? -1 : s:N

@@ -264,6 +264,10 @@ MUcomplete to define any mapping, set |g:mucomplete#no_mappings| or
 	When the pop-up menu is visible, try the previous completion method
 	that can be applied.
 
+<c-space>
+	Toggle the alternative set of completion chains. Is reset after every
+	completion.
+
 The mappings above may be overridden in your |vimrc|. For example, to use
 <c-j> and <c-k> instead of <tab> and <s-tab>, use:
 >
@@ -276,6 +280,10 @@ To use <left> and <right> as cycling keys, use:
 	imap <right> <plug>(MUcompleteCycFwd)
 	inoremap <silent> <plug>(MUcompleteBwdKey) <left>
 	imap <left> <plug>(MUcompleteCycBwd)
+<
+To use <c-n> instead of <c-space>, use:
+>
+	imap <c-n> <plug>(MUcompleteAlternate)
 <
 Note: if you decide to use your own cycling keys, please be aware that the
 keys that are valid in CTRL-X mode are not mapped (see |ins-completion|). This
@@ -408,7 +416,7 @@ checked.
 A List specifying a completion chain for the current buffer only. When this
 variable is defined, the value of |g:mucomplete#chains| is ignored.
 
-							*'g:mucomplete#chains'*
+			    *'g:mucomplete#chains'* *'g:mucomplete#alt_chains'*
 A Dictionary defining the Lists of completion chains.
 >
 	let g:mucomplete#chains = {
@@ -422,6 +430,17 @@ completion chains. For example:
 	let g:mucomplete#chains = {}
 	let g:mucomplete#chains.default  = ['omni', 'c-p']
 	let g:mucomplete#chains.markdown = ['keyn', 'dict', 'uspl']
+<
+
+There is also an alternative set of chains, defined by |g:mucomplete#alt_chains|.
+This set can be toggled with <C-Space>, and will be always reset after
+completion. Same remarks that will be done for g:mucomplete#chains will be
+valid for the alternative set. Default:
+>
+	let g:mucomplete#alt_chains = {
+		\ 'default' : ['tags', 'ulti', 'c-n'],
+		\ 'vim'     : ['tags', 'ulti', 'c-n']
+		\ }
 <
 						*'g:mucomplete#cycle_all'*
 MUcomplete allows you to use specific completion methods only when the trigger
