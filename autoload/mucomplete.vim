@@ -256,9 +256,12 @@ fun! s:extend_completion(dir, keys)
 endf
 
 fun! mucomplete#change_chain()
+  if !pumvisible()
+    return ''
+  endif
   let g:mucomplete#current_chain = g:mucomplete#current_chain is g:mucomplete#chains
         \ ? g:mucomplete#alt_chains : g:mucomplete#chains
-  return "\<c-e>\<plug>(MUcompleteFwd)\<plug>(MUcompleteBwd)"
+  return "\<plug>(MUcompletePopupCancel)\<plug>(MUcompleteFwd)\<plug>(MUcompleteBwd)"
 endfun
 
 call mucomplete#auto#auto_complete()
