@@ -35,7 +35,46 @@ fun! mucomplete#auto#toggle()
   endif
 endf
 
-if has('patch-8.0.0283')
+" Prevent popup when backspacing if the c-n completion would be triggered {{{1
+fun! s:nopopup(off)
+  for c in get(b:, 'mucomplete_no_popup_after_chars',
+    \          get(g:, 'mucomplete#no_popup_after_chars', ['\s', '"', nr2char(39)]))
+    if s:charpos(col('.') + a:off) =~ c
+      return 1
+    endif
+  endfor
+endfun
+
+fun! s:charpos(col)
+  return matchstr(getline('.'), '\%' . a:col . 'c.')
+endfun
+
+fun! mucomplete#auto#check_chars_before()
+  return pumvisible() && ( col('.') <= 3 || s:nopopup(-3) )
+        \? "\<c-e>\<BS>" : "\<BS>"
+endf
+
+if get(g:, 'mucomplete#prevent_popup_on_backspace', 1)
+  let has_patch = has('patch-8.0.1494')
+  let map_bs    = get(g:, 'mucomplete#map_backspace_for_popup_prevention', !has_patch)
+
+  if !has_patch || map_bs
+    " no TextChangedP, or forcing <bs> remapping for better performance
+
+    if !(get(g:, 'mucomplete#no_popup_mappings', 0) || get(g:, 'mucomplete#no_mappings', 0) || get(g:, 'no_plugin_maps', 0))
+      inoremap    <silent> <expr> <plug>(MUcompleteBS) mucomplete#auto#check_chars_before()
+      call mucomplete#map('imap', '<bs>', '<plug>(MUcompleteBS)')
+    endif
+
+  elseif has_patch && !map_bs
+    " TextChangedP and not forcing <bs> remapping, use autocmd
+
+    autocmd TextChangedP * noautocmd if col('.') <= 2 || s:nopopup(-2)
+                                 \ | call feedkeys("\<c-e>", 'n') | endif
+  endif
+endif
+
+if has('patch-8.0.0283') " {{{1
   let s:insertcharpre = 0
 
   fun! mucomplete#auto#insertcharpre()
@@ -61,7 +100,7 @@ if has('patch-8.0.0283')
   finish
 endif
 
-" Code for Vim 8.0.0282 and older
+" Code for Vim 8.0.0282 and older {{{1
 if !(get(g:, 'mucomplete#no_popup_mappings', 0) || get(g:, 'mucomplete#no_mappings', 0) || get(g:, 'no_plugin_maps', 0))
   if !hasmapto('<plug>(MUcompletePopupCancel)', 'i')
     call mucomplete#map('imap', '<c-e>', '<plug>(MUcompletePopupCancel)')
