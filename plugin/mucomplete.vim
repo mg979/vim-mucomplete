@@ -20,6 +20,8 @@ if !has('patch-8.0.0283')
   inoremap <silent> <expr> <plug>(MUcompletePopupCancel) mucomplete#auto#popup_exit("\<c-e>")
   inoremap <silent> <expr> <plug>(MUcompletePopupAccept) mucomplete#auto#popup_exit("\<c-y>")
   inoremap <silent> <expr> <plug>(MUcompleteCR) mucomplete#auto#popup_exit("\<cr>")
+else
+  inoremap <silent> <plug>(MUcompletePopupCancel) <c-e>
 endif
 
 if !get(g:, 'mucomplete#no_mappings', get(g:, 'no_plugin_maps', 0))

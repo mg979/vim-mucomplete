@@ -261,7 +261,7 @@ fun! mucomplete#change_chain()
   endif
   let g:mucomplete#current_chain = g:mucomplete#current_chain is g:mucomplete#chains
         \ ? g:mucomplete#alt_chains : g:mucomplete#chains
-  return "\<plug>(MUcompletePopupCancel)\<plug>(MUcompleteFwd)\<plug>(MUcompleteBwd)"
+  return "\<plug>(MUcompletePopupCancel)\<plug>(MUcompleteFwd)"
 endfun
 
 call mucomplete#auto#auto_complete()
