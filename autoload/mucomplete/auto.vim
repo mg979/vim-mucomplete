@@ -8,6 +8,7 @@ set cpo&vim
 fun! mucomplete#auto#enable()
   augroup MUcompleteAuto
     autocmd!
+    autocmd BufEnter      * call mucomplete#maps#buffer()
     autocmd InsertCharPre * noautocmd call mucomplete#auto#insertcharpre()
     if get(g:, 'mucomplete#delayed_completion', 0)
       autocmd TextChangedI * noautocmd call mucomplete#auto#ic_auto_complete()
@@ -35,7 +36,26 @@ fun! mucomplete#auto#toggle()
   endif
 endf
 
-if has('patch-8.0.0283')
+" Prevent popup when backspacing if the c-n completion would be triggered {{{1
+fun! s:nopopup(off)
+  for c in get(b:, 'mucomplete_no_popup_after_chars',
+    \          get(g:, 'mucomplete#no_popup_after_chars', ['\s', '"', nr2char(39)]))
+    if s:charpos(col('.') + a:off) =~ c
+      return 1
+    endif
+  endfor
+endfun
+
+fun! s:charpos(col)
+  return matchstr(getline('.'), '\%' . a:col . 'c.')
+endfun
+
+fun! mucomplete#auto#check_chars_before()
+  return pumvisible() && ( col('.') <= 3 || s:nopopup(-3) )
+        \? "\<c-e>\<BS>" : "\<BS>"
+endf
+
+if has('patch-8.0.0283') " {{{1
   let s:insertcharpre = 0
 
   fun! mucomplete#auto#insertcharpre()
@@ -61,19 +81,7 @@ if has('patch-8.0.0283')
   finish
 endif
 
-" Code for Vim 8.0.0282 and older
-if !(get(g:, 'mucomplete#no_popup_mappings', 0) || get(g:, 'mucomplete#no_mappings', 0) || get(g:, 'no_plugin_maps', 0))
-  if !hasmapto('<plug>(MUcompletePopupCancel)', 'i')
-    call mucomplete#map('imap', '<c-e>', '<plug>(MUcompletePopupCancel)')
-  endif
-  if !hasmapto('<plug>(MUcompletePopupAccept)', 'i')
-    call mucomplete#map('imap', '<c-y>', '<plug>(MUcompletePopupAccept)')
-  endif
-  if !hasmapto('<plug>(MUcompleteCR)', 'i')
-    call mucomplete#map('imap', '<cr>', '<plug>(MUcompleteCR)')
-  endif
-endif
-
+" Code for Vim 8.0.0282 and older {{{1
 let s:cancel_auto = 0
 let s:insertcharpre = 0
 
