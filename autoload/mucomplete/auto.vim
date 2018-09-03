@@ -8,6 +8,7 @@ set cpo&vim
 fun! mucomplete#auto#enable()
   augroup MUcompleteAuto
     autocmd!
+    autocmd BufEnter      * call mucomplete#maps#buffer()
     autocmd InsertCharPre * noautocmd call mucomplete#auto#insertcharpre()
     autocmd TextChangedI  * noautocmd let g:mucomplete#current_chain = g:mucomplete#chains
     if get(g:, 'mucomplete#delayed_completion', 0)
@@ -36,7 +37,7 @@ fun! mucomplete#auto#toggle()
   endif
 endf
 
-if has('patch-8.0.0283')
+if has('patch-8.0.0283') " {{{1
   let s:insertcharpre = 0
 
   fun! mucomplete#auto#insertcharpre()
@@ -62,19 +63,7 @@ if has('patch-8.0.0283')
   finish
 endif
 
-" Code for Vim 8.0.0282 and older
-if !(get(g:, 'mucomplete#no_popup_mappings', 0) || get(g:, 'mucomplete#no_mappings', 0) || get(g:, 'no_plugin_maps', 0))
-  if !hasmapto('<plug>(MUcompletePopupCancel)', 'i')
-    call mucomplete#map('imap', '<c-e>', '<plug>(MUcompletePopupCancel)')
-  endif
-  if !hasmapto('<plug>(MUcompletePopupAccept)', 'i')
-    call mucomplete#map('imap', '<c-y>', '<plug>(MUcompletePopupAccept)')
-  endif
-  if !hasmapto('<plug>(MUcompleteCR)', 'i')
-    call mucomplete#map('imap', '<cr>', '<plug>(MUcompleteCR)')
-  endif
-endif
-
+" Code for Vim 8.0.0282 and older {{{1
 let s:cancel_auto = 0
 let s:insertcharpre = 0
 
