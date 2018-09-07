@@ -2,9 +2,6 @@
 " Maintainer: Lifepillar <lifepillar@lifepillar.me>
 " License: This file is placed in the public domain
 
-let s:save_cpo = &cpo
-set cpo&vim
-
 imap     <silent> <expr> <plug>(MUcompleteTry) <sid>try_completion()
 imap     <silent> <expr> <plug>(MUcompleteVerify) <sid>verify_completion()
 inoremap <silent>        <plug>(MUcompleteOut) <c-g><c-g>
@@ -355,7 +352,4 @@ fun! s:scope()
   endif
   return has_key(ft, scope) ? ft[scope] : []
 endf
-
-let &cpo = s:save_cpo
-unlet s:save_cpo
 
