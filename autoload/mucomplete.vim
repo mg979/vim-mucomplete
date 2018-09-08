@@ -303,9 +303,8 @@ fun! mucomplete#init(dir, tab_completion) " Initialize/reset internal state
   if scope == ['none']
     return
   endif
-  let chain = !empty(scope) ? scope : g:mucomplete#current_chain
-  let s:compl_methods = get(b:, 'mucomplete_chain',
-        \ get(chain, getbufvar("%", "&ft"), chain['default']))
+  let s:compl_methods = get(b:, 'mucomplete_chain', !empty(scope) ? scope
+        \ : get(g:mucomplete#current_chain, getbufvar("%", "&ft"), g:mucomplete#current_chain.default))
   let s:N = len(s:compl_methods)
   let s:countdown = s:N
   let s:i = s:dir > 0 ? -1 : s:N
