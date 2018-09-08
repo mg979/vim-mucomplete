@@ -6,18 +6,22 @@ let s:save_cpo = &cpo
 set cpo&vim
 
 fun! mucomplete#auto#enable()
-  augroup MUcompleteAuto
-    autocmd!
-    autocmd BufEnter      * call mucomplete#maps#buffer()
-    autocmd InsertCharPre * noautocmd call mucomplete#auto#insertcharpre()
-    autocmd TextChangedI  * noautocmd let g:mucomplete#current_chain = g:mucomplete#chains
-    if get(g:, 'mucomplete#delayed_completion', 0)
-      autocmd TextChangedI * noautocmd call mucomplete#auto#ic_auto_complete()
-      autocmd  CursorHoldI * noautocmd call mucomplete#auto#auto_complete()
-    else
-      autocmd TextChangedI * noautocmd call mucomplete#auto#auto_complete()
-    endif
-  augroup END
+  if get(g:, 'mucomplete#completion_delay', 0) > 1 && has('timers')
+    call mucomplete#timer#enable()
+  else
+    augroup MUcompleteAuto
+      autocmd!
+      autocmd BufEnter      * call mucomplete#maps#buffer()
+      autocmd InsertCharPre * noautocmd call mucomplete#auto#insertcharpre()
+      autocmd TextChangedI  * noautocmd let g:mucomplete#current_chain = g:mucomplete#chains
+      if get(g:, 'mucomplete#completion_delay', 0)
+        autocmd TextChangedI * noautocmd call mucomplete#auto#ic_auto_complete()
+        autocmd  CursorHoldI * noautocmd call mucomplete#auto#auto_complete()
+      else
+        autocmd TextChangedI * noautocmd call mucomplete#auto#auto_complete()
+      endif
+    augroup END
+  endif
 endf
 
 fun! mucomplete#auto#disable()
