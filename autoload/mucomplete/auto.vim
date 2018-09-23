@@ -11,9 +11,7 @@ fun! mucomplete#auto#enable()
   else
     augroup MUcompleteAuto
       autocmd!
-      autocmd BufEnter      * call mucomplete#maps#buffer()
       autocmd InsertCharPre * noautocmd call mucomplete#auto#insertcharpre()
-      autocmd TextChangedI  * noautocmd let g:mucomplete#current_chain = g:mucomplete#chains
       if get(g:, 'mucomplete#completion_delay', 0)
         autocmd TextChangedI * noautocmd call mucomplete#auto#ic_auto_complete()
         autocmd  CursorHoldI * noautocmd call mucomplete#auto#auto_complete()

@@ -18,25 +18,6 @@ fun! s:errmsg(msg)
   echohl NONE
 endf
 
-fun! mucomplete#map(mode, lhs, rhs)
-  try
-    execute a:mode '<silent> <unique>' a:lhs a:rhs
-  catch /^Vim\%((\a\+)\)\=:E227/
-    call s:errmsg(a:lhs . ' is already mapped (use `:verbose '.a:mode.' '.a:lhs.'` to see by whom). See :help mucomplete-compatibility.')
-  endtry
-endf
-
-if !get(g:, 'mucomplete#no_mappings', get(g:, 'no_plugin_maps', 0))
-  if !hasmapto('<plug>(MUcompleteCycFwd)', 'i')
-    inoremap <silent> <plug>(MUcompleteFwdKey) <c-j>
-    call mucomplete#map('imap', '<c-j>', '<plug>(MUcompleteCycFwd)')
-  endif
-  if !hasmapto('<plug>(MUcompleteCycBwd)', 'i')
-    inoremap <silent> <plug>(MUcompleteBwdKey) <c-h>
-    call mucomplete#map('imap', '<c-h>', '<plug>(MUcompleteCycBwd)')
-  endif
-endif
-
 if exists('g:mucomplete#smart_enter')
   call s:errmsg("g:mucomplete#smart_enter has been removed. See :help mucomplete-tips.")
 endif
@@ -255,12 +236,11 @@ fun! s:extend_completion(dir, keys)
 endf
 
 fun! mucomplete#change_chain()
-  if !pumvisible()
-    return ''
-  endif
   let g:mucomplete#current_chain = g:mucomplete#current_chain is g:mucomplete#chains
         \ ? g:mucomplete#alt_chains : g:mucomplete#chains
-  return "\<plug>(MUcompletePopupCancel)\<plug>(MUcompleteFwd)"
+  return pumvisible() ?
+        \"\<plug>(MUcompletePopupCancel)\<plug>(MUcompleteFwd)" :
+        \"\<plug>(MUcompleteFwd)"
 endfun
 
 call mucomplete#auto#auto_complete()

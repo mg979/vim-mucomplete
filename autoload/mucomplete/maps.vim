@@ -1,128 +1,92 @@
 " Chained completion that works as I want!
 " Maintainer: Lifepillar <lifepillar@lifepillar.me>
 " License: This file is placed in the public domain
-" Auxiliary Script: for mappings generation, by mg979 <mg1979.git@gmail.com>
+" Auxiliary Script: mg979 <mg1979.git@gmail.com>
 
-" Mappings are checked at start and on BufEnter (where buffer mappings could
-" override MUcomplete mappings). Mappings are only generated if necessary (on
-" the base of options and vim version).
+" This script handles:
+"       - mapping generation on first InsertEnter event.
+"       - popup prevention on backspace
 
-" Whenever a mapping is existing, the old mapping is reconstructed with
-" maparg(), and the new mapping takes the for of:
-"
-"       <expr> pumvisible() ? new_mapping : old_mapping
-"
-" An exception is made when the keystrokes are themselves contained in the
-" original mapping, to avoid recursions. Example from vim-endwise:
-"
-"       <CR><Plug>DiscretionaryEnd -> <Plug>(MUcompleteCR)<Plug>DiscretionaryEnd
+inoremap <silent>        <plug>(MUcompleteFwdKey)    <c-j>
+inoremap <silent>        <plug>(MUcompleteBwdKey)    <c-h>
+imap     <silent> <expr> <plug>(MUcompleteFwd)       mucomplete#tab_complete( 1)
+imap     <silent> <expr> <plug>(MUcompleteBwd)       mucomplete#tab_complete(-1)
+imap     <silent> <expr> <plug>(MUcompleteCycFwd)    mucomplete#cycle( 1)
+imap     <silent> <expr> <plug>(MUcompleteCycBwd)    mucomplete#cycle(-1)
+imap     <silent> <expr> <plug>(MUcompleteAlternate) mucomplete#change_chain()
+inoremap <silent> <expr> <plug>(MUcompleteBS)        mucomplete#maps#check_chars_before()
 
+augroup MUcompleteBuffer
+  au!
+  autocmd TextChangedI  * noautocmd let g:mucomplete#current_chain = g:mucomplete#chains
+augroup END
 
-let s:save_cpo = &cpo
-set cpo&vim
-
-
-" Plugs and Tab mappings {{{1
-imap     <silent> <expr> <plug>(MUcompleteFwd)         mucomplete#tab_complete( 1)
-imap     <silent> <expr> <plug>(MUcompleteBwd)         mucomplete#tab_complete(-1)
-imap     <silent> <expr> <plug>(MUcompleteCycFwd)      mucomplete#cycle( 1)
-imap     <silent> <expr> <plug>(MUcompleteCycBwd)      mucomplete#cycle(-1)
-imap     <silent> <expr> <plug>(MUcompleteAlternate)   mucomplete#change_chain()
-
-if !get(g:, 'mucomplete#no_mappings', get(g:, 'no_plugin_maps', 0))
-  if !hasmapto('<plug>(MUcompleteFwd)', 'i')
-    imap <unique> <tab> <plug>(MUcompleteFwd)
-  endif
-  if !hasmapto('<plug>(MUcompleteBwd)', 'i')
-    imap <unique> <s-tab> <plug>(MUcompleteBwd)
-  endif
+if !has('patch-8.0.0283')
+  inoremap <silent> <expr> <plug>(MUcompletePopupCancel) mucomplete#auto#popup_exit("\<c-e>")
+  inoremap <silent> <expr> <plug>(MUcompletePopupAccept) mucomplete#auto#popup_exit("\<c-y>")
+  inoremap <silent> <expr> <plug>(MUcompleteCR)          mucomplete#auto#popup_exit("\<cr>")
+else
+  inoremap <silent> <plug>(MUcompletePopupCancel) <c-e>
+  inoremap <silent> <plug>(MUcompletePopupAccept) <c-y>
+  inoremap <silent> <plug>(MUcompleteCR)          <cr>
 endif
 
-" On plugin loaded {{{1
-fun! mucomplete#maps#start()
-  let [s:old, s:new] = [{}, {}]
-  let can_map = !(get(g:, 'mucomplete#no_popup_mappings', 0) ||
+
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" On first InsertEnter {{{1
+
+fun! mucomplete#maps#init()
+
+  " Reset augroup, so that it runs only once
+  augroup MUcompleteInit
+    au!
+  augroup END
+
+  " Basic mappings
+  if !get(g:, 'mucomplete#no_mappings', get(g:, 'no_plugin_maps', 0))
+    if !hasmapto('<plug>(MUcompleteFwd)', 'i')
+      call s:map('imap', '<tab>', '<plug>(MUcompleteFwd)')
+    endif
+    if !hasmapto('<plug>(MUcompleteBwd)', 'i')
+      call s:map('imap', '<s-tab>', '<plug>(MUcompleteBwd)')
+    endif
+    if !hasmapto('<plug>(MUcompleteCycFwd)', 'i')
+      call s:map('imap', '<c-j>', '<plug>(MUcompleteCycFwd)')
+    endif
+    if !hasmapto('<plug>(MUcompleteCycBwd)', 'i')
+      call s:map('imap', '<c-h>', '<plug>(MUcompleteCycBwd)')
+    endif
+    if get(g:, 'mucomplete#map_cspace', 0)
+      if has('nvim') || has('gui_running')
+        imap <c-space> <plug>(MUcompleteAlternate)
+      else
+        imap <nul> <plug>(MUcompleteAlternate)
+      endif
+    endif
+  endif
+
+  " Compatibility mappings
+  if !has('patch-8.0.0283') && !(
+        \         get(g:, 'mucomplete#no_popup_mappings', 0) ||
         \         get(g:, 'mucomplete#no_mappings', 0) ||
         \         get(g:, 'no_plugin_maps', 0))
-
-  if !has('patch-8.0.0283') && can_map
-    inoremap <silent> <expr> <plug>(MUcompletePopupCancel) mucomplete#auto#popup_exit("\<c-e>")
-    inoremap <silent> <expr> <plug>(MUcompletePopupAccept) mucomplete#auto#popup_exit("\<c-y>")
-    inoremap <silent> <expr> <plug>(MUcompleteCR)          mucomplete#auto#popup_exit("\<cr>")
-    let s:old  = {'<cr>': 'OldCR', '<c-y>': 'OldCy', '<c-e>': 'OldCe'}
-    let s:new  = {'<cr>': 'CR', '<c-y>': 'PopupAccept', '<c-e>': 'PopupCancel'}
-    if has('nvim') || has('gui_running')
-      let s:old['<c-space>'] = 'OldCspace'
-      let s:new['<c-space>'] = 'Alternate'
-    else
-      let s:old['<nul>'] = 'OldCspace'
-      let s:new['<nul>'] = 'Alternate'
-    endif
-  else
-    inoremap <silent> <plug>(MUcompletePopupCancel) <c-e>
-    inoremap <silent> <plug>(MUcompletePopupAccept) <c-y>
-    inoremap <silent> <plug>(MUcompleteCR)          <cr>
+    call s:map('imap', '<c-e>', '<plug>(MUcompletePopupCancel)')
+    call s:map('imap', '<c-y>', '<plug>(MUcompletePopupAccept)')
+    call s:map('imap', '<cr>', '<plug>(MUcompleteCR)')
   endif
 
-  for m in keys(s:old)
-    let mp = maparg(m, 'i', 0, 1)
-    let [old, new] = [s:plug(s:old[m]), s:plug(s:new[m])]
-
-    if (empty(mp) || mp.buffer) && !hasmapto(new, 'i')
-      execute 'imap <silent> <unique> '.m.' '.new
-      continue
-    endif
-
-    call s:make_maps(m, mp, old, new, ' ')
-  endfor
-
-  " add <bs> to the active mappings, that will be checked on BufEnter
-  if get(g:, 'mucomplete#prevent_popup_on_backspace', 1) && s:map_bs()
-    inoremap <silent> <expr> <plug>(MUcompleteBS) mucomplete#maps#check_chars_before()
-    let s:old['<bs>'] = 'BS'
-    let s:new['<bs>'] = 'BS'
+  " map <bs> if appropriate
+  if s:map_bs() && !hasmapto('<plug>(MUcompleteBS)', 'i')
+    call s:map('imap', '<bs>', '<plug>(MUcompleteBS)')
   endif
 endfun
 
-" On BufEnter {{{1
-fun! mucomplete#maps#buffer()
-  for m in keys(s:old)
-    let mp = maparg(m, 'i', 0, 1)
-    let [old, new] = [s:plug(s:old[m]), s:plug(s:new[m])]
 
-    if empty(mp) || !mp.buffer
-      continue
-    endif
 
-    call s:make_maps(m, mp, old, new, ' <buffer> ')
-  endfor
-endfun
-
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Prevent popup when backspacing if the c-n completion would be triggered {{{1
-fun! mucomplete#maps#check_chars_before()
-  return pumvisible() && ( col('.') <= 3 || s:nopopup(-3) )
-        \? "\<c-e>\<BS>" : "\<BS>"
-endf
-
-" Helpers {{{1
-fun! s:plug(p)
-  return '<Plug>(MUcomplete'.a:p.')'
-endfun
-
-fun! s:make_maps(m, mp, old, new, b)
-  let e = a:mp['expr']    ? '<expr> '    : ''
-  let s = a:mp['silent']  ? '<silent> '  : ''
-  let M = a:mp['noremap'] ? 'inoremap '  : 'imap '
-  let w = a:mp['nowait']  ? '<nowait> '  : ''
-  let r = a:mp['rhs']
-  if match(maparg(a:m, 'i'), a:m) >= 0
-    let old = substitute(maparg(a:m, 'i'), a:m, '', 'g')
-    exe 'imap ' . a:b . a:m . ' ' . a:new . old
-  else
-    exe M.e.s.w . ' ' . a:old . ' ' . r
-    exe 'imap <expr>' . a:b . a:m . ' pumvisible() ? ' . '"\'.a:new.'"' . ' : ' . '"\'.a:old.'"'
-  endif
-endfun
+" Currently working only is mucomplete#enable_auto_at_startup is true
 
 fun! s:nopopup(off)
   for c in get(b:, 'mucomplete_no_popup_after_chars',
@@ -143,7 +107,6 @@ fun! s:map_bs()
 
   if map_bs && !hasmapto('<plug>(MUcompleteBS)', 'i')
     " no TextChangedP, or forcing <bs> remapping for better performance
-    imap <silent> <unique> <bs> <plug>(MUcompleteBS)
     return 1
 
   elseif has_patch
@@ -154,6 +117,30 @@ fun! s:map_bs()
   endif
 endfun
 
-let &cpo = s:save_cpo
-unlet s:save_cpo
+fun! mucomplete#maps#check_chars_before()
+  return pumvisible() && ( col('.') <= 3 || s:nopopup(-3) )
+        \? "\<c-e>\<BS>" : "\<BS>"
+endf
+
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Helpers {{{1
+
+fun! s:map(mode, lhs, rhs)
+  try
+    execute a:mode '<silent> <unique>' a:lhs a:rhs
+  catch /^Vim\%((\a\+)\)\=:E227/
+    if get(g:, 'mucomplete#force_mappings', 0)
+      execute a:mode '<silent>' a:lhs a:rhs
+    else
+      call s:errmsg(a:lhs . ' is already mapped (use `:verbose '.a:mode.' '.a:lhs.'` to see by whom). See :help mucomplete-compatibility.')
+    endif
+  endtry
+endf
+
+fun! s:errmsg(msg)
+  echohl ErrorMsg
+  echomsg "[MUcomplete]" a:msg
+  echohl NONE
+endf
 
