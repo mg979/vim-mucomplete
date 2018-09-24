@@ -119,6 +119,13 @@ fun! mucomplete#compat#can_complete()
   return l:can_complete
 endf
 
+fun! mucomplete#compat#requires_mappings()
+  return !has('patch-8.0.0283') && !(
+        \         get(g:, 'mucomplete#no_popup_mappings', 0) ||
+        \         get(g:, 'mucomplete#no_mappings', 0) ||
+        \         get(g:, 'no_plugin_maps', 0))
+endfun
+
 let &cpo = s:save_cpo
 unlet s:save_cpo
 

@@ -337,3 +337,6 @@ fun! s:scope()
   return has_key(ft, scope) ? ft[scope] : []
 endf
 
+fun! mucomplete#load()
+  return
+endfun

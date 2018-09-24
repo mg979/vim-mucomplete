@@ -10,6 +10,9 @@ let g:loaded_mucomplete = 1
 let s:save_cpo = &cpo
 set cpo&vim
 
+call mucomplete#load()
+let g:mucomplete#plugins = mucomplete#plugins#init()
+
 if has('patch-7.4.143') || (v:version == 704 && has("patch143")) " TextChangedI started to work there
   command -bar -nargs=0 MUcompleteAutoOn call mucomplete#auto#enable()
   command -bar -nargs=0 MUcompleteAutoOff call mucomplete#auto#disable()
