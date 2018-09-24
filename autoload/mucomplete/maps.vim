@@ -41,6 +41,9 @@ fun! mucomplete#maps#init()
   autocmd! MUcompleteInit
   augroup! MUcompleteInit
 
+  " Get plugins variables before any change is done
+  call mucomplete#plugins#insert_enter()
+
   " Basic mappings
   if !get(g:, 'mucomplete#no_mappings', get(g:, 'no_plugin_maps', 0))
     if !hasmapto('<plug>(MUcompleteFwd)', 'i')
@@ -63,18 +66,22 @@ fun! mucomplete#maps#init()
 
   " Compatibility mappings
   if mucomplete#compat#requires_mappings()
-    call s:map('imap', '<c-e>', mucomplete#plugins#ce())
-    call s:map('imap', '<c-y>', '<plug>(MUcompletePopupAccept)')
+    call s:map('imap', '<c-e>', mucomplete#plugins#cte())
+    call s:map('imap', '<c-y>', mucomplete#plugins#cty())
     call s:map('imap', '<cr>', mucomplete#plugins#cr())
   elseif exists('g:loaded_youcompleteme')
-    call s:map('imap', '<c-e>', mucomplete#plugins#ce())
+    call s:map('imap', '<c-e>', mucomplete#plugins#cte())
+    call s:map('imap', '<c-y>', mucomplete#plugins#cty())
   endif
 
-  " map <bs> if appropriate
+  " Map <bs> if appropriate
   if s:map_bs()
     inoremap <silent> <expr> <plug>(MUcompleteBS) mucomplete#maps#check_chars_before()
     call s:map('imap', '<bs>', mucomplete#plugins#bs())
   endif
+
+  " Finalize plugin compatibility
+  call mucomplete#plugins#ready()
 endfun
 
 
@@ -106,16 +113,26 @@ fun! s:map_bs()
   elseif has_patch
     " TextChangedP and not forcing <bs> remapping, use autocmd
 
-    autocmd TextChangedP * noautocmd if col('.') <= 2 || s:nopopup(-2)
-          \ | call feedkeys("\<c-e>", 'n') | endif
+    call mucomplete#maps#bs_augroup()
   endif
 endfun
 
 fun! mucomplete#maps#check_chars_before()
-  return pumvisible() && ( col('.') <= 3 || s:nopopup(-3) )
-        \? "\<c-e>\<BS>" : "\<BS>"
+  if has_key(b:, 'mucomplete_ycm')
+    return "\<BS>"
+  else
+    return pumvisible() && ( col('.') <= 3 || s:nopopup(-3) )
+          \? "\<c-e>\<BS>" : "\<BS>"
+  endif
 endf
 
+fun! mucomplete#maps#bs_augroup()
+  augroup MUcompleteBS
+    au!
+    autocmd TextChangedP * noautocmd if col('.') <= 2 || s:nopopup(-2)
+          \ | call feedkeys("\<c-e>", 'n') | endif
+  augroup END
+endfun
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Helpers {{{1

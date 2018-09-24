@@ -9,31 +9,30 @@ let s:autopairs = 0
 let s:endwise = 0
 let s:ycm = 0
 let s:was_auto_enabled = 0
+let s:was_bs_enabled = 0
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Initialize
+" Initialize/finalize
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " This function is called on plugin loaded, where it makes sense to change
 " default mappings and settings
 fun! mucomplete#plugins#init()
   let all = []
-  let plugins = get(g:, 'mucomplete#plugin_compatibility', {})
-  if has_key(plugins, 'autopairs') && exists('g:AutoPairsLoaded') &&
-        \ has_key(plugins, 'endwise') && exists('g:loaded_endwise')
+  if s:handled('autopairs') && s:handled('endwise')
     let s:autopairs_endwise = 1
     call s:remap_autopairs()
     let all = ['autopairs', 'endwise']
-  elseif has_key(plugins, 'autopairs') && exists('g:AutoPairsLoaded')
+  elseif s:handled('autopairs')
     let s:autopairs = 1
     call s:remap_autopairs()
     let all = ['autopairs']
-  elseif has_key(plugins, 'endwise') && exists('g:loaded_endwise')
+  elseif s:handled('endwise')
     call s:remap_endwise()
     let s:endwise = 1
     let all = ['endwise']
   endif
-  if has_key(plugins, 'ycm') && exists('g:loaded_youcompleteme')
+  if s:handled('ycm')
     call s:remap_ycm()
     let s:ycm = 1
     call add(all, 'ycm')
@@ -41,11 +40,24 @@ fun! mucomplete#plugins#init()
   return all
 endfun
 
+fun! mucomplete#plugins#insert_enter()
+  if s:handled('ycm')
+    let s:ycm_sid = maparg("<C-Space>", 'i', 0, 1).sid
+  endif
+endfun
+
+fun! mucomplete#plugins#ready()
+  if s:handled('ycm')
+    call mucomplete#plugins#ycm_set_maps()
+    call s:ycm_au()
+  endif
+endfun
+
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " auto-pairs, endwise
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-fun s:remap_autopairs()
+fun! s:remap_autopairs()
   let g:AutoPairsMapBS = 0
   let g:AutoPairsMapCR = 0
   let g:AutoPairsMapCh = 0
@@ -63,6 +75,8 @@ fun! s:remap_endwise()
   imap <silent> <cr> <plug>(MUcompleteCR-EW)
   imap <silent><expr> <plug>(MUcompleteCR-EW) "\<plug>(MUcompleteCR)\<plug>DiscretionaryEnd"
 endfun
+
+"-------------------------------------------------------------------------------
 
 fun! s:ap_ew_cr()
   imap <silent> <cr> <plug>(MUcompleteCR-AP-EW)
@@ -92,7 +106,9 @@ fun! s:ap_space()
         \ "\<plug>(MUcompleteSpace)" : "\<c-r>=AutoPairsSpace()<cr>"
 endfun
 
+"-------------------------------------------------------------------------------
 " on first InsertEnter (mapping generation), to ensure the right plug is applied
+
 fun! mucomplete#plugins#cr()
   return
         \s:autopairs_endwise ? "\<plug>(MUcompleteCR-AP-EW)" :
@@ -100,7 +116,6 @@ fun! mucomplete#plugins#cr()
         \s:endwise           ? "\<plug>(MUcompleteCR-EW)" : "\<plug>(MUcompleteCR)"
 endfun
 
-" on first InsertEnter (mapping generation), to ensure the right plug is applied
 fun! mucomplete#plugins#bs()
   return s:autopairs ? "\<plug>(MUcompleteBS-AP)" : "\<plug>(MUcompleteBS)"
 endfun
@@ -122,74 +137,128 @@ fun! s:remap_ycm()
   let g:ycm_key_list_select_completion = ['<Down>']
 endfun
 
-" called when initialized or on BufEnter, to decide the c-space completion
-fun! s:use_ycm()
-  return
-        \ !s:ycm   ? 0 :
-        \ g:ycm_filetype_whitelist == {'*': 1} ? 1 :
-        \ ( !has_key(g:ycm_filetype_blacklist, &ft) && has_key(g:ycm_filetype_whitelist, &ft) )
-endfun
-
-" on first InsertEnter, to initialize ycm plug and set the mapping the first time
-fun! mucomplete#plugins#cspace()
-  if !s:ycm
-    return '<plug>(MUcompleteAlternate)'
-  endif
-  call s:ycm_au()
-  let csp = maparg("<C-Space>", 'i', 0, 1)
-  exe 'inoremap <silent> <plug>YcmCSpace <c-r>=<SNR>'.csp['sid'].'_InvokeSemanticCompletion()<cr>'
-  imap <silent><expr> <plug>(MUcompleteCSpaceYcm) mucomplete#plugins#ycm_cs()
-  return s:use_ycm() ? '<plug>(MUcompleteCSpaceYcm)' : '<plug>(MUcompleteAlternate)'
-endfun
-
-" ycm normally uses <c-y> to stop completion, but we're forcing <c-e> for
-" consistency. It's also the default vim mapping for this purpose.
-" TODO: right now it's using c-y to disable popup and c-e to revert, but I
-" couldn't put them toghether
-fun! mucomplete#plugins#ce()
-  if !s:ycm
-    return '<plug>(MUcompletePopupCancel)'
-  endif
-  call s:ycm_au()
-  let csp = maparg("<C-Space>", 'i', 0, 1)
-  exe 'inoremap <silent> <plug>YcmCy <c-r>=<SNR>'.csp['sid'].'_StopCompletion( "\<C-Y>" )<cr>'
-  imap <silent> <plug>YcmCe <plug>(MUcompletePopupCancel)<plug>YcmCy
-  imap <silent><expr> <plug>(MUcompleteCeYcm) mucomplete#plugins#ycm_ce()
-  return s:use_ycm() ? '<plug>(MUcompleteCeYcm)' : '<plug>(MUcompletePopupCancel)'
-endfun
-
-" called on BufEnter
-fun! mucomplete#plugins#ycm_set_maps()
-  let m = has('nvim') || has('gui_running') ? "<c-space>" : "<nul>"
-  if s:use_ycm()
-    exe 'imap <silent>' m '<plug>(MUcompleteCSpaceYcm)'
-    exe 'imap <silent> <c-e> <plug>(MUcompleteCeYcm)'
-    if exists('#MUcompleteAuto')
-      let s:was_auto_enabled = 1
-      MUcompleteAutoOff
-    endif
-  else
-    exe 'imap <silent>' m '<plug>(MUcompleteAlternate)'
-    exe 'imap <silent> <c-e> <plug>(MUcompletePopupCancel)'
-    if s:was_auto_enabled && !exists('#MUcompleteAuto')
-      MUcompleteAutoOn
-    endif
-  endif
-endfun
-
-" this is the plug function that is called when cspace is pressed
-fun! mucomplete#plugins#ycm_cs()
-  return s:use_ycm() ? "\<plug>YcmCSpace" : "\<plug>(MUcompleteAlternate)"
-endfun
-
-" this is the plug function that is called when <c-e> is pressed
-fun! mucomplete#plugins#ycm_ce()
-  return s:use_ycm() ? "\<plug>YcmCe" : "\<plug>(MUcompletePopupCancel)"
-endfun
-
 fun! s:ycm_au()
   augroup MUcompleteYcm
     au!
     au BufEnter * call mucomplete#plugins#ycm_set_maps()
   augroup END
+endfun
+
+" called on BufEnter, sets (non-local) mappings for the current buffer
+fun! mucomplete#plugins#ycm_set_maps()
+  let m = has('nvim') || has('gui_running') ? "<c-space>" : "<nul>"
+  if s:use_ycm()
+    let b:mucomplete_ycm = 1
+    exe 'imap <silent>' m '<plug>(MUcompleteCSpaceYcm)'
+    imap <silent> <c-e> <plug>(MUcompleteCteYcm)
+    imap <silent> <c-y> <plug>(MUcompleteCtyYcm)
+    if exists('#MUcompleteAuto')
+      let s:was_auto_enabled = 1
+      MUcompleteAutoOff
+    endif
+    if exists('#MUcompleteBS')
+      let s:was_bs_enabled = 1
+      autocmd! MUcompleteBS
+      augroup! MUcompleteBS
+    endif
+  else
+    exe 'imap <silent>' m '<plug>(MUcompleteAlternate)'
+    imap <silent> <c-e> <plug>(MUcompletePopupCancel)
+    imap <silent> <c-y> <plug>(MUcompletePopupAccept)
+    if s:was_auto_enabled && !exists('#MUcompleteAuto')
+      MUcompleteAutoOn
+      let s:was_auto_enabled = 0
+    endif
+    if s:was_bs_enabled && !exists('#MUcompleteBS')
+      call mucomplete#maps#bs_augroup()
+      let s:was_bs_enabled = 0
+    endif
+  endif
+endfun
+
+"-------------------------------------------------------------------------------
+" <C-SPACE>
+
+" on init
+fun! mucomplete#plugins#cspace()
+  if !s:ycm
+    return '<plug>(MUcompleteAlternate)'
+  endif
+  return s:ycm_cspace()
+endfun
+
+" called when cspace is pressed
+fun! mucomplete#plugins#ycm_cspace()
+  return has_key(b:, 'mucomplete_ycm') ? "\<plug>YcmCSpace" : "\<plug>(MUcompleteAlternate)"
+endfun
+
+" plug
+fun! s:ycm_cspace()
+  exe 'inoremap <silent> <plug>YcmCSpace <c-r>=<SNR>'.s:ycm_sid.'_InvokeSemanticCompletion()<cr>'
+  imap <silent><expr> <plug>(MUcompleteCSpaceYcm) mucomplete#plugins#ycm_cspace()
+  return s:use_ycm() ? '<plug>(MUcompleteCSpaceYcm)' : '<plug>(MUcompleteAlternate)'
+endfun
+
+"-------------------------------------------------------------------------------
+" <C-E>
+
+" on init
+fun! mucomplete#plugins#cte()
+  if !s:ycm
+    return '<plug>(MUcompletePopupCancel)'
+  endif
+  return s:ycm_cte()
+endfun
+
+" called when <c-e> is pressed
+fun! mucomplete#plugins#ycm_cte()
+  return has_key(b:, 'mucomplete_ycm') ? "\<plug>YcmCte" : "\<plug>(MUcompletePopupCancel)"
+endfun
+
+" plug
+fun! s:ycm_cte()
+  exe 'inoremap <silent> <plug>YcmCte <c-r>=<SNR>'.s:ycm_sid.'_CloseCompletionMenu()<cr>'
+  imap <silent><expr> <plug>(MUcompleteCteYcm) mucomplete#plugins#ycm_cte()
+  return s:use_ycm() ? '<plug>(MUcompleteCteYcm)' : '<plug>(MUcompletePopupCancel)'
+endfun
+
+"-------------------------------------------------------------------------------
+" <C-Y>
+
+" on init
+fun! mucomplete#plugins#cty()
+  if !s:ycm
+    return '<plug>(MUcompletePopupAccept)'
+  endif
+  return s:ycm_cty()
+endfun
+
+" called when <c-y> is pressed
+fun! mucomplete#plugins#ycm_cty()
+  return has_key(b:, 'mucomplete_ycm') ? "\<plug>YcmCty" : "\<plug>(MUcompletePopupAccept)"
+endfun
+
+" plug
+fun! s:ycm_cty()
+  exe 'inoremap <silent> <plug>YcmCty <c-r>=<SNR>'.s:ycm_sid.'_StopCompletion( "\<C-Y>" )<cr>'
+  imap <silent><expr> <plug>(MUcompleteCtyYcm) mucomplete#plugins#ycm_cty()
+  return s:use_ycm() ? '<plug>(MUcompleteCtyYcm)' : '<plug>(MUcompletePopupAccept)'
+endfun
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Helpers
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+fun! s:handled(plugin)
+  let plugins = get(g:, 'mucomplete#plugin_compatibility', {})
+  return a:plugin == 'ycm' ? has_key(plugins, 'ycm') && exists('g:loaded_youcompleteme') :
+        \a:plugin == 'endwise' ? has_key(plugins, 'endwise') && exists('g:loaded_endwise') :
+        \a:plugin == 'autopairs' ? has_key(plugins, 'autopairs') && exists('g:AutoPairsLoaded') : ''
+endfun
+
+fun! s:use_ycm()
+  return
+        \ !s:ycm   ? 0 :
+        \ g:ycm_filetype_whitelist == {'*': 1} ? 1 :
+        \ ( !has_key(g:ycm_filetype_blacklist, &ft) && has_key(g:ycm_filetype_whitelist, &ft) )
 endfun

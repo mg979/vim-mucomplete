@@ -10,7 +10,7 @@ let g:loaded_mucomplete = 1
 let s:save_cpo = &cpo
 set cpo&vim
 
-call mucomplete#load()
+call mucomplete#init(1, 1)
 let g:mucomplete#plugins = mucomplete#plugins#init()
 
 if has('patch-7.4.143') || (v:version == 704 && has("patch143")) " TextChangedI started to work there
@@ -22,7 +22,9 @@ if has('patch-7.4.143') || (v:version == 704 && has("patch143")) " TextChangedI 
     au!
     autocmd InsertEnter * noautocmd call mucomplete#maps#init() |
           \ if get(g:, 'mucomplete#enable_auto_at_startup', 0) |
-          \ call mucomplete#auto#enable() | endif
+          \     call mucomplete#auto#enable() |
+          \ endif |
+          \ call mucomplete#plugins#ready()
   augroup END
 endif
 
