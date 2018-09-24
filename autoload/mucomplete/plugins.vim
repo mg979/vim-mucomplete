@@ -128,13 +128,12 @@ endfun
 
 
 " called on plugin loaded, where it can have an effect
-" sets StopCompletion to <c-e> as in MUcomplete
 " <tab> and <s-tab> will be handled by MUcomplete only
 fun! s:remap_ycm()
   let g:ycm_auto_trigger = 1
-  let g:ycm_key_list_stop_completion = ['<c-y>']
   let g:ycm_key_list_previous_completion = ['<Up>']
   let g:ycm_key_list_select_completion = ['<Down>']
+  let s:ycm_cty_map = get(g:, 'ycm_key_list_stop_completion', ['<c-y>'])
 endfun
 
 fun! s:ycm_au()
@@ -150,8 +149,10 @@ fun! mucomplete#plugins#ycm_set_maps()
   if s:use_ycm()
     let b:mucomplete_ycm = 1
     exe 'imap <silent>' m '<plug>(MUcompleteCSpaceYcm)'
-    imap <silent> <c-e> <plug>(MUcompleteCteYcm)
-    imap <silent> <c-y> <plug>(MUcompleteCtyYcm)
+    if mucomplete#plugins#should_remap_cty()
+      let y = s:ycm_cty_map[0]
+      exe 'imap <silent>' y '<plug>(MUcompleteCtyYcm)'
+    endif
     if exists('#MUcompleteAuto')
       let s:was_auto_enabled = 1
       MUcompleteAutoOff
@@ -163,8 +164,9 @@ fun! mucomplete#plugins#ycm_set_maps()
     endif
   else
     exe 'imap <silent>' m '<plug>(MUcompleteAlternate)'
-    imap <silent> <c-e> <plug>(MUcompletePopupCancel)
-    imap <silent> <c-y> <plug>(MUcompletePopupAccept)
+    if mucomplete#plugins#should_remap_cty()
+      imap <silent> <c-y> <plug>(MUcompletePopupAccept)
+    endif
     if s:was_auto_enabled && !exists('#MUcompleteAuto')
       MUcompleteAutoOn
       let s:was_auto_enabled = 0
@@ -200,32 +202,13 @@ fun! s:ycm_cspace()
 endfun
 
 "-------------------------------------------------------------------------------
-" <C-E>
-
-" on init
-fun! mucomplete#plugins#cte()
-  if !s:ycm
-    return '<plug>(MUcompletePopupCancel)'
-  endif
-  return s:ycm_cte()
-endfun
-
-" called when <c-e> is pressed
-fun! mucomplete#plugins#ycm_cte()
-  return has_key(b:, 'mucomplete_ycm') ? "\<plug>YcmCte" : "\<plug>(MUcompletePopupCancel)"
-endfun
-
-" plug
-fun! s:ycm_cte()
-  exe 'inoremap <silent> <plug>YcmCte <c-r>=<SNR>'.s:ycm_sid.'_CloseCompletionMenu()<cr>'
-  imap <silent><expr> <plug>(MUcompleteCteYcm) mucomplete#plugins#ycm_cte()
-  return s:use_ycm() ? '<plug>(MUcompleteCteYcm)' : '<plug>(MUcompletePopupCancel)'
-endfun
-
-"-------------------------------------------------------------------------------
 " <C-Y>
 
 " on init
+fun! mucomplete#plugins#should_remap_cty()
+  return s:ycm && !empty(s:ycm_cty_map)
+endfun
+
 fun! mucomplete#plugins#cty()
   if !s:ycm
     return '<plug>(MUcompletePopupAccept)'

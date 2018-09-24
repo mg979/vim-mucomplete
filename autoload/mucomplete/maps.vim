@@ -66,11 +66,10 @@ fun! mucomplete#maps#init()
 
   " Compatibility mappings
   if mucomplete#compat#requires_mappings()
-    call s:map('imap', '<c-e>', mucomplete#plugins#cte())
+    call s:map('imap', '<c-e>', '<plug>(MUcompletePopupCancel)')
     call s:map('imap', '<c-y>', mucomplete#plugins#cty())
     call s:map('imap', '<cr>', mucomplete#plugins#cr())
-  elseif exists('g:loaded_youcompleteme')
-    call s:map('imap', '<c-e>', mucomplete#plugins#cte())
+  elseif mucomplete#plugins#should_remap_cty()
     call s:map('imap', '<c-y>', mucomplete#plugins#cty())
   endif
 
