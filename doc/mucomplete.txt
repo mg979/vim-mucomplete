@@ -764,6 +764,7 @@ matter what the value of this option is.
 Note: this option is relevant only for Windows users.
 
 					*'g:mucomplete#user_mappings'*
+					*'b:mucomplete_user_mappings'*
 A Dictionary of user-defined completion methods. For example:
 >
 	let g:mucomplete#user_mappings = {
@@ -782,6 +783,10 @@ example:
 	let g:mucomplete#chains.default = ['keyp', 'xyz']
 	let g:mucomplete#chains.sql = ['sqla', 'keyp', 'tags']
 <
+It can also be defined as a buffer variable (|b:mucomplete_user_mappings|),
+for example in a ftplugin. Any method defined in this way will update any
+method that was previously set.
+
 					*'g:mucomplete_with_key'*
 Read-only flag that tells whether completion was initiated manually by the
 user or it was triggered automatically. See |mucomplete-tips| for an example.

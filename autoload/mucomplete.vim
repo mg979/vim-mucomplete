@@ -356,6 +356,13 @@ fun! mucomplete#auto_complete()
   endwhile
 endf
 
+augroup MUcompleteUpdateCompletions
+  au!
+  au BufEnter * if exists('b:mucomplete_user_mappings')
+        \     |   call extend(s:compl_mappings, b:mucomplete_user_mappings)
+        \     | endif
+augroup END
+
 let &cpo = s:save_cpo
 unlet s:save_cpo
 
